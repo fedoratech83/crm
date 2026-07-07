@@ -16,6 +16,16 @@ class TimestampDiff(Function):
 		super().__init__("TIMESTAMPDIFF", unit, start, end, **kwargs)
 
 
+def _external_widget(method_name, from_date=None, to_date=None, user=None):
+	"""Holy Trinity deploy patch: unknown widget names resolve from the fundraising
+	app (fundraising.crm.dashboard.get_*) so the dashboard can mix native and
+	fundraising widgets. Fails soft — a missing/broken widget renders empty."""
+	try:
+		return frappe.get_attr(f"fundraising.crm.dashboard.{method_name}")(from_date, to_date, user)
+	except Exception:
+		return None
+
+
 @frappe.whitelist()
 def reset_to_default():
 	frappe.only_for("System Manager", True)
@@ -56,7 +66,7 @@ def get_dashboard(from_date: str | None = None, to_date: str | None = None, user
 			method = getattr(frappe.get_attr("crm.api.dashboard"), method_name)
 			l["data"] = method(from_date, to_date, user)
 		else:
-			l["data"] = None
+			l["data"] = _external_widget(method_name, from_date, to_date, user)
 
 	return layout
 
@@ -85,6 +95,9 @@ def get_chart(
 		method = getattr(frappe.get_attr("crm.api.dashboard"), method_name)
 		return method(from_date, to_date, user)
 	else:
+		data = _external_widget(method_name, from_date, to_date, user)
+		if data is not None:
+			return data
 		return {"error": _("Invalid chart name")}
 
 
