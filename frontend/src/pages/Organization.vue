@@ -141,12 +141,11 @@
         </button>
       </template>
       <template #tab-panel="{ tab }">
-        <DealsListView
-          v-if="tab.label === 'Deals' && rows.length"
-          class="mt-4"
-          :rows="rows"
-          :columns="columns"
-          :options="{ selectable: false, showTooltip: false }"
+        <DonationsListView
+          v-if="tab.label === 'Donations' && donationRows.length"
+          :rows="donationRows"
+          :summary="donations.data"
+          @loadMore="loadMoreDonations"
         />
         <ContactsListView
           v-if="tab.label === 'Contacts' && rows.length"
@@ -156,7 +155,7 @@
           :options="{ selectable: false, showTooltip: false }"
         />
         <EmptyState
-          v-if="!rows.length"
+          v-if="tab.label === 'Donations' ? !donationRows.length : !rows.length"
           :icon="tab.icon"
           :name="__(tab.label)"
         />
@@ -184,6 +183,7 @@ import SidePanelLayout from '@/components/SidePanelLayout.vue'
 import Icon from '@/components/Icon.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import DealsListView from '@/components/ListViews/DealsListView.vue'
+import DonationsListView from '@/components/ListViews/DonationsListView.vue'
 import ContactsListView from '@/components/ListViews/ContactsListView.vue'
 import WebsiteIcon from '@/components/Icons/WebsiteIcon.vue'
 import CameraIcon from '@/components/Icons/CameraIcon.vue'
@@ -371,9 +371,9 @@ function getParsedSections(_sections) {
 const tabIndex = ref(0)
 const tabs = [
   {
-    label: 'Deals',
+    label: 'Donations',
     icon: DealsIcon,
-    count: computed(() => deals.data?.length),
+    count: computed(() => donations.data?.total || 0),
   },
   {
     label: 'Contacts',
@@ -425,6 +425,26 @@ const contacts = createListResource({
   pageLength: 20,
   auto: true,
 })
+
+// Holy Trinity deploy patch: the org's full ERP donation history as the first tab
+const donationRows = ref([])
+const donations = createResource({
+  url: 'fundraising.crm.giving.donor_history',
+  params: { ref_doctype: 'CRM Organization', ref_name: props.organizationId, start: 0, limit: 50 },
+  auto: true,
+  onSuccess(data) {
+    donationRows.value = donationRows.value.concat(data?.rows || [])
+  },
+})
+
+function loadMoreDonations() {
+  donations.submit({
+    ref_doctype: 'CRM Organization',
+    ref_name: props.organizationId,
+    start: donationRows.value.length,
+    limit: 50,
+  })
+}
 
 const rows = computed(() => {
   let list = !tabIndex.value ? deals : contacts
