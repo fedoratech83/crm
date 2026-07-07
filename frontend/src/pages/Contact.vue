@@ -155,6 +155,18 @@
           :icon="tab.icon"
           name="Donations"
         />
+        <DealsListView
+          v-if="tab.label === 'Deals' && rows.length"
+          class="mt-4"
+          :rows="rows"
+          :columns="columns"
+          :options="{ selectable: false, showTooltip: false }"
+        />
+        <EmptyState
+          v-if="tab.label === 'Deals' && !rows.length"
+          :icon="tab.icon"
+          name="Deals"
+        />
       </template>
     </Tabs>
   </div>
@@ -302,6 +314,12 @@ const tabs = [
     icon: DealsIcon,
     count: computed(() => donations.data?.total || 0),
   },
+  {
+    // label 'Deals' renders as "Major Gifts" via the Translation records
+    label: 'Deals',
+    icon: DealsIcon,
+    count: computed(() => deals.data?.length),
+  },
 ]
 
 // Holy Trinity deploy patch: full ERP donation history instead of the Deals list
@@ -328,7 +346,7 @@ const deals = createResource({
   url: 'crm.api.contact.get_linked_deals',
   cache: ['deals', props.contactId],
   params: { contact: props.contactId },
-  auto: false, // tab now shows donations; deals fetch kept for reuse, not auto-run
+  auto: true,
 })
 
 const rows = computed(() => {
