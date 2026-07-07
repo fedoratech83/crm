@@ -2,8 +2,8 @@
   <Popover
     placement="right-start"
     trigger="hover"
-    :hoverDelay="0.1"
-    :leaveDelay="0.1"
+    :hoverDelay="0.4"
+    :leaveDelay="60"
   >
     <template #target="{ togglePopover }">
       <button
