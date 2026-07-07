@@ -48,7 +48,14 @@
       class="flex flex-1 overflow-hidden flex-col [&_[role='tab']]:px-0 [&_[role='tab']]:shrink-0 [&_[role='tablist']]:px-5 [&_[role='tablist']::-webkit-scrollbar]:h-0 [&_[role='tablist']]:min-h-[45px] [&_[role='tablist']]:gap-7.5 [&_[role='tabpanel']:not([hidden])]:flex [&_[role='tabpanel']:not([hidden])]:grow"
     >
       <template #tab-panel>
+        <DonationsListView
+          v-if="tabs[tabIndex] && tabs[tabIndex].name === 'Donations'"
+          :rows="donationRows"
+          :summary="donations.data"
+          @loadMore="loadMoreDonations"
+        />
         <Activities
+          v-else
           ref="activities"
           v-model:reload="reload"
           v-model:tabIndex="tabIndex"
@@ -253,6 +260,7 @@ import AttachmentIcon from '@/components/Icons/AttachmentIcon.vue'
 import LostReasonModal from '@/components/Modals/LostReasonModal.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import Activities from '@/components/Activities/Activities.vue'
+import DonationsListView from '@/components/ListViews/DonationsListView.vue'
 import AssignTo from '@/components/AssignTo.vue'
 import FilesUploader from '@/components/FilesUploader/FilesUploader.vue'
 import SidePanelLayout from '@/components/SidePanelLayout.vue'
@@ -413,6 +421,11 @@ const tabs = computed(() => {
       icon: ActivityIcon,
     },
     {
+      name: 'Donations',
+      label: __('Donations'),
+      icon: DetailsIcon,
+    },
+    {
       name: 'Emails',
       label: __('Emails'),
       icon: EmailIcon,
@@ -456,6 +469,27 @@ const tabs = computed(() => {
   ]
   return tabOptions.filter((tab) => (tab.condition ? tab.condition() : true))
 })
+
+// Holy Trinity deploy patch: the pledge row's full donation history, right where
+// the officer responds to it (fundraising.crm.giving resolves via ht_donor)
+const donationRows = ref([])
+const donations = createResource({
+  url: 'fundraising.crm.giving.donor_history',
+  params: { ref_doctype: 'CRM Lead', ref_name: props.leadId, start: 0, limit: 50 },
+  auto: true,
+  onSuccess(data) {
+    donationRows.value = donationRows.value.concat(data?.rows || [])
+  },
+})
+
+function loadMoreDonations() {
+  donations.submit({
+    ref_doctype: 'CRM Lead',
+    ref_name: props.leadId,
+    start: donationRows.value.length,
+    limit: 50,
+  })
+}
 
 const { tabIndex, changeTabTo } = useActiveTabManager(tabs, 'lastLeadTab')
 
