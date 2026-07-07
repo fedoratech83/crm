@@ -98,6 +98,15 @@ const leadStatuses = computed(() => statusOptions('lead'))
 // Holy Trinity deploy patch: picking a donor populates the form + surfaces the
 // donor's open pledges so incoming money matches the existing pledge FIRST.
 const donorBrief = ref(null)
+const applyPledgeField = ref(null)
+
+function openPledgeFilters(donor) {
+  return {
+    donor: donor || '__none__',
+    donation_type: ['in', ['Pledge', 'MatchingGiftPledge']],
+    balance: ['>', 0],
+  }
+}
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 const donorBriefResource = createResource({
   url: 'fundraising.crm.giving.donor_brief',
@@ -119,6 +128,9 @@ watch(
   () => lead.doc.ht_donor,
   (donor) => {
     donorBrief.value = null
+    if (applyPledgeField.value) {
+      applyPledgeField.value.filters = openPledgeFilters(donor)
+    }
     if (donor) donorBriefResource.submit({ donor })
     else lead.doc.ht_apply_pledge = ''
   },
@@ -134,6 +146,10 @@ const tabs = createResource({
       tab.sections.forEach((section) => {
         section.columns.forEach((column) => {
           column.fields.forEach((field) => {
+            if (field.fieldname == 'ht_apply_pledge') {
+              applyPledgeField.value = field
+              field.filters = openPledgeFilters(lead.doc.ht_donor)
+            }
             if (field.fieldname == 'status') {
               field.fieldtype = 'Select'
               field.options = leadStatuses.value
