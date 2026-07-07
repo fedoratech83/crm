@@ -26,6 +26,23 @@
           </div>
         </div>
         <div>
+          <div
+            v-if="donorBrief && donorBrief.open_pledges && donorBrief.open_pledges.length"
+            class="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-base text-amber-900"
+          >
+            <div class="font-medium">
+              {{ donorBrief.full_name }} — {{ donorBrief.open_pledges.length }} open pledge(s):
+            </div>
+            <div v-for="p in donorBrief.open_pledges.slice(0, 4)" :key="p.name" class="mt-0.5">
+              {{ p.name }} · {{ usd.format(p.balance) }} open of {{ usd.format(p.amount) }}
+              ({{ p.donation_date }}{{ p.primary_fund ? ' · ' + p.primary_fund : '' }})
+            </div>
+            <div class="mt-1 text-sm">
+              Paid Now goes to the pledge selected under
+              <b>Apply Payment to Open Pledge</b> (oldest pre-selected) — clear that field
+              to log new money instead.
+            </div>
+          </div>
           <FieldLayout v-if="tabs.data" :tabs="tabs.data" :data="lead.doc" />
           <ErrorMessage v-if="error" class="mt-4" :message="__(error)" />
         </div>
@@ -55,7 +72,7 @@ import { showQuickEntryModal, quickEntryProps } from '@/composables/modals'
 import { useOnboarding, useTelemetry } from 'frappe-ui/frappe'
 import { createResource } from 'frappe-ui'
 import { useDocument } from '@/data/document'
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -77,6 +94,35 @@ const { document: lead, triggerOnBeforeCreate } = useDocument('CRM Lead')
 const { capture } = useTelemetry()
 
 const leadStatuses = computed(() => statusOptions('lead'))
+
+// Holy Trinity deploy patch: picking a donor populates the form + surfaces the
+// donor's open pledges so incoming money matches the existing pledge FIRST.
+const donorBrief = ref(null)
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const donorBriefResource = createResource({
+  url: 'fundraising.crm.giving.donor_brief',
+  onSuccess(data) {
+    donorBrief.value = data
+    if (!data) return
+    if (!lead.doc.first_name && data.first_name) lead.doc.first_name = data.first_name
+    if (!lead.doc.last_name && data.last_name) lead.doc.last_name = data.last_name
+    if (!lead.doc.email && data.email) lead.doc.email = data.email
+    if (!lead.doc.mobile_no && data.mobile) lead.doc.mobile_no = data.mobile
+    if (!lead.doc.organization && data.is_org) lead.doc.organization = data.full_name
+    if (!lead.doc.ht_apply_pledge && data.open_pledges.length) {
+      lead.doc.ht_apply_pledge = data.open_pledges[0].name // oldest first
+    }
+  },
+})
+
+watch(
+  () => lead.doc.ht_donor,
+  (donor) => {
+    donorBrief.value = null
+    if (donor) donorBriefResource.submit({ donor })
+    else lead.doc.ht_apply_pledge = ''
+  },
+)
 
 const tabs = createResource({
   url: 'crm.fcrm.doctype.crm_fields_layout.crm_fields_layout.get_fields_layout',
