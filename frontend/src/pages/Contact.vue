@@ -144,14 +144,17 @@
         </button>
       </template>
       <template #tab-panel="{ tab }">
-        <DealsListView
-          v-if="tab.label === 'Deals' && rows.length"
-          class="mt-4"
-          :rows="rows"
-          :columns="columns"
-          :options="{ selectable: false, showTooltip: false }"
+        <DonationsListView
+          v-if="tab.label === 'Donations' && donationRows.length"
+          :rows="donationRows"
+          :summary="donations.data"
+          @loadMore="loadMoreDonations"
         />
-        <EmptyState v-if="!rows.length" :icon="tab.icon" name="Deals" />
+        <EmptyState
+          v-if="tab.label === 'Donations' && !donationRows.length"
+          :icon="tab.icon"
+          name="Donations"
+        />
       </template>
     </Tabs>
   </div>
@@ -179,6 +182,7 @@ import PhoneIcon from '@/components/Icons/PhoneIcon.vue'
 import CameraIcon from '@/components/Icons/CameraIcon.vue'
 import DealsIcon from '@/components/Icons/DealsIcon.vue'
 import DealsListView from '@/components/ListViews/DealsListView.vue'
+import DonationsListView from '@/components/ListViews/DonationsListView.vue'
 import CustomActions from '@/components/CustomActions.vue'
 import { validateIsImageFile, setupCustomizations } from '@/utils'
 import { timestampCell } from '@/composables/useTimelinePreferences'
@@ -294,17 +298,37 @@ function changeContactImage(file) {
 const tabIndex = ref(0)
 const tabs = [
   {
-    label: 'Deals',
+    label: 'Donations',
     icon: DealsIcon,
-    count: computed(() => deals.data?.length),
+    count: computed(() => donations.data?.total || 0),
   },
 ]
+
+// Holy Trinity deploy patch: full ERP donation history instead of the Deals list
+const donationRows = ref([])
+const donations = createResource({
+  url: 'fundraising.crm.giving.donor_history',
+  params: { ref_doctype: 'Contact', ref_name: props.contactId, start: 0, limit: 50 },
+  auto: true,
+  onSuccess(data) {
+    donationRows.value = donationRows.value.concat(data?.rows || [])
+  },
+})
+
+function loadMoreDonations() {
+  donations.submit({
+    ref_doctype: 'Contact',
+    ref_name: props.contactId,
+    start: donationRows.value.length,
+    limit: 50,
+  })
+}
 
 const deals = createResource({
   url: 'crm.api.contact.get_linked_deals',
   cache: ['deals', props.contactId],
   params: { contact: props.contactId },
-  auto: true,
+  auto: false, // tab now shows donations; deals fetch kept for reuse, not auto-run
 })
 
 const rows = computed(() => {
