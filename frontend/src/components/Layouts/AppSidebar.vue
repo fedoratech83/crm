@@ -102,6 +102,15 @@
         </template>
       </SidebarLink>
       <SidebarLink
+        :label="__('ERP Desk')"
+        :isCollapsed="isSidebarCollapsed"
+        @click="() => openDesk()"
+      >
+        <template #icon>
+          <ERPDeskIcon class="h-4 w-4" />
+        </template>
+      </SidebarLink>
+      <SidebarLink
         v-if="isOnboardingStepsCompleted"
         :label="__('Help')"
         :isCollapsed="isSidebarCollapsed"
@@ -154,6 +163,7 @@
 
 <script setup>
 import BrushCleaningIcon from '~icons/lucide/brush-cleaning'
+import ERPDeskIcon from '~icons/lucide/external-link'
 import LucideLayoutDashboard from '~icons/lucide/layout-dashboard'
 import CRMLogo from '@/components/Icons/CRMLogo.vue'
 import InviteIcon from '@/components/Icons/InviteIcon.vue'
@@ -217,6 +227,12 @@ const isSidebarCollapsed = useStorage('isSidebarCollapsed', false)
 const isFCSite = ref(window.is_fc_site)
 const isDemoSite = ref(window.is_demo_site)
 const showSalesHierarchyBanner = ref(!!window.show_sales_hierarchy_banner)
+
+// Holy Trinity deploy patch: one always-visible jump to the ERP desk (the hover
+// Apps switcher proved too fiddly for staff).
+function openDesk() {
+  window.open('/app', '_blank')
+}
 
 const links = [
   {
