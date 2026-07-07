@@ -147,6 +147,13 @@
           :summary="donations.data"
           @loadMore="loadMoreDonations"
         />
+        <DealsListView
+          v-if="tab.label === 'Deals' && rows.length"
+          class="mt-4"
+          :rows="rows"
+          :columns="columns"
+          :options="{ selectable: false, showTooltip: false }"
+        />
         <ContactsListView
           v-if="tab.label === 'Contacts' && rows.length"
           class="mt-4"
@@ -376,6 +383,12 @@ const tabs = [
     count: computed(() => donations.data?.total || 0),
   },
   {
+    // renders as "Major Gifts" via Translation
+    label: 'Deals',
+    icon: DealsIcon,
+    count: computed(() => deals.data?.length),
+  },
+  {
     label: 'Contacts',
     icon: ContactsIcon,
     count: computed(() => contacts.data?.length),
@@ -447,19 +460,19 @@ function loadMoreDonations() {
 }
 
 const rows = computed(() => {
-  let list = !tabIndex.value ? deals : contacts
+  let list = tabIndex.value === 1 ? deals : contacts
 
   if (!list.data) return []
 
   return list.data.map((row) => {
-    return !tabIndex.value ? getDealRowObject(row) : getContactRowObject(row)
+    return tabIndex.value === 1 ? getDealRowObject(row) : getContactRowObject(row)
   })
 })
 
 const { getFormattedCurrency } = getMeta('CRM Deal')
 
 const columns = computed(() => {
-  return tabIndex.value === 0 ? dealColumns : contactColumns
+  return tabIndex.value === 1 ? dealColumns : contactColumns
 })
 
 function getDealRowObject(deal) {
