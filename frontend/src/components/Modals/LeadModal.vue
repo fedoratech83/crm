@@ -108,18 +108,27 @@ function openPledgeFilters(donor) {
   }
 }
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const prefilled = ref({})
+
+function setFromDonor(fieldname, value) {
+  if (!lead.doc[fieldname] && value) {
+    lead.doc[fieldname] = value
+    prefilled.value[fieldname] = value
+  }
+}
+
 const donorBriefResource = createResource({
   url: 'fundraising.crm.giving.donor_brief',
   onSuccess(data) {
     donorBrief.value = data
     if (!data) return
-    if (!lead.doc.first_name && data.first_name) lead.doc.first_name = data.first_name
-    if (!lead.doc.last_name && data.last_name) lead.doc.last_name = data.last_name
-    if (!lead.doc.email && data.email) lead.doc.email = data.email
-    if (!lead.doc.mobile_no && data.mobile) lead.doc.mobile_no = data.mobile
-    if (!lead.doc.organization && data.is_org) lead.doc.organization = data.full_name
-    if (!lead.doc.ht_apply_pledge && data.open_pledges.length) {
-      lead.doc.ht_apply_pledge = data.open_pledges[0].name // oldest first
+    setFromDonor('first_name', data.first_name)
+    setFromDonor('last_name', data.last_name)
+    setFromDonor('email', data.email)
+    setFromDonor('mobile_no', data.mobile)
+    if (data.is_org) setFromDonor('organization', data.full_name)
+    if (data.open_pledges.length) {
+      setFromDonor('ht_apply_pledge', data.open_pledges[0].name) // oldest first
     }
   },
 })
@@ -128,11 +137,16 @@ watch(
   () => lead.doc.ht_donor,
   (donor) => {
     donorBrief.value = null
+    // wipe what the PREVIOUS donor's prefill wrote (never user-typed values)
+    for (const [f, v] of Object.entries(prefilled.value)) {
+      if (lead.doc[f] === v) lead.doc[f] = ''
+    }
+    prefilled.value = {}
+    lead.doc.ht_apply_pledge = ''
     if (applyPledgeField.value) {
       applyPledgeField.value.filters = openPledgeFilters(donor)
     }
     if (donor) donorBriefResource.submit({ donor })
-    else lead.doc.ht_apply_pledge = ''
   },
 )
 
