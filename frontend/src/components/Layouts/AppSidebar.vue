@@ -64,6 +64,7 @@
               :to="link.to"
               :isCollapsed="isSidebarCollapsed"
               class="mx-2 my-[1.5px]"
+              @click="() => link.onClick?.()"
             />
           </nav>
         </Section>
@@ -165,6 +166,7 @@
 import BrushCleaningIcon from '~icons/lucide/brush-cleaning'
 import ERPDeskIcon from '~icons/lucide/external-link'
 import LucideLayoutDashboard from '~icons/lucide/layout-dashboard'
+import GiftIcon from '~icons/lucide/gift'
 import CRMLogo from '@/components/Icons/CRMLogo.vue'
 import InviteIcon from '@/components/Icons/InviteIcon.vue'
 import ConvertIcon from '@/components/Icons/ConvertIcon.vue'
@@ -234,11 +236,26 @@ function openDesk() {
   window.open('/app', '_blank')
 }
 
+// Holy Trinity deploy patch (2026-07-12, user request: "a section on the crm just for
+// the gifts input on the navigation bar"): a standalone nav-bar entry for gift entry, not
+// tied to a specific donor/contact/deal first — the SAME deep link the per-record "Add
+// Gift" buttons already use (fundraising.crm.gift_entry), just reachable without opening
+// a donor record first. donation_type defaults to Donation (the common case); the officer
+// picks the donor and can change the type on the desk form itself.
+function openGiftEntry() {
+  window.open('/app/ht-donation/new?donation_type=Donation', '_blank')
+}
+
 const links = [
   {
     label: 'Dashboard',
     icon: LucideLayoutDashboard,
     to: 'Dashboard',
+  },
+  {
+    label: 'Gifts',
+    icon: GiftIcon,
+    onClick: openGiftEntry,
   },
   {
     label: 'Leads',
