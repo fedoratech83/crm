@@ -7,6 +7,7 @@ import { gemoji } from 'gemoji'
 import DOMPurify from 'dompurify'
 import { toast, dayjsLocal, dayjs, getConfig, FeatherIcon } from 'frappe-ui'
 import { h } from 'vue'
+import { renderFieldLayoutDialog } from '@/utils/renderFieldLayoutDialog'
 
 export function formatTime(seconds) {
   const days = Math.floor(seconds / (3600 * 24))
@@ -347,6 +348,16 @@ async function getFormScript(script, obj) {
 
 export async function setupCustomizations(scripts, obj) {
   if (!scripts) return []
+
+  // Holy Trinity deploy patch (2026-07-12): the old function-style setupForm() scripts
+  // (used for every page's header actions — Contact/Organization/Deal/Lead) never got
+  // formDialog(), unlike the newer class-based useDocument/getScript system (script.js's
+  // setupScript already injects it there). A header-action script that needs REAL Link-
+  // field pickers (not a prompt()/confirm() chain) had no way to get them. formDialog
+  // is self-contained (renderFieldLayoutDialog.js has no dependency on the class-based
+  // system — its dialogs are mounted globally via GlobalModals.vue), so injecting it here
+  // makes it available to every setupForm script at once, not just new ones.
+  obj = { ...obj, formDialog: renderFieldLayoutDialog }
 
   let statuses = []
   let actions = []
