@@ -92,7 +92,22 @@
                               'Text Editor',
                             ].includes(field.fieldtype)
                           "
-                          class="flex h-7 cursor-pointer items-center px-2 py-1 text-ink-gray-5"
+                          :class="[
+                            'flex cursor-pointer px-2 py-1 text-ink-gray-5',
+                            // HT fix 2026-07-23: multi-line read-only text (Address &
+                            // Household section: ht_address, ht_address_history,
+                            // ht_relationships) was clamped to the h-7 (28px) row and
+                            // visually spilled over the following fields, unreadable.
+                            // Let text-y fieldtypes grow and honor their newlines; keep
+                            // the one-line 28px row for everything else. Deliberately
+                            // NOT added to the exclusion list above: that branch's
+                            // textarea lacks :disabled and would become editable.
+                            ['Small Text', 'Text', 'Long Text', 'Code'].includes(
+                              field.fieldtype,
+                            )
+                              ? 'min-h-7 items-start whitespace-pre-line break-words'
+                              : 'h-7 items-center',
+                          ]"
                         >
                           <Tooltip :text="__(field.tooltip)">
                             <div>{{ doc[field.fieldname] }}</div>

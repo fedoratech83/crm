@@ -35,7 +35,7 @@
             </div>
             <div v-for="p in donorBrief.open_pledges.slice(0, 4)" :key="p.name" class="mt-0.5">
               {{ p.name }} · {{ usd.format(p.balance) }} open of {{ usd.format(p.amount) }}
-              ({{ p.donation_date }}{{ p.primary_fund ? ' · ' + p.primary_fund : '' }})
+              ({{ formatDate(p.donation_date, '', true) }}{{ p.primary_fund ? ' · ' + p.primary_fund : '' }})
             </div>
             <div class="mt-1 text-sm">
               Paid Now goes to the pledge selected under
@@ -68,6 +68,7 @@ import { usersStore } from '@/stores/users'
 import { statusesStore } from '@/stores/statuses'
 import { sessionStore } from '@/stores/session'
 import { isMobileView } from '@/composables/settings'
+import { formatDate } from '@/utils'
 import { showQuickEntryModal, quickEntryProps } from '@/composables/modals'
 import { useOnboarding, useTelemetry } from 'frappe-ui/frappe'
 import { createResource } from 'frappe-ui'
