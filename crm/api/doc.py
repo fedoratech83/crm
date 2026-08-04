@@ -253,6 +253,50 @@ def update_in_standard_filter(fieldname, doctype, value):
 		)
 
 
+def _expand_multiword_name_search(doctype, filters):
+	"""Middle-name / initial / word-order bypass for name searches (HT office 2026-08-04).
+
+	The list search box sends a single whole-phrase filter, e.g.
+	`{"full_name": ["like", "%barbara hamel%"]}`, which never matches a stored
+	"Barbara A. Hamel" -- the middle initial breaks the one-substring match, so donors
+	the office searched by first + last name looked "missing". When a `like` value on a
+	text field carries two or more whitespace-separated words, match EACH word
+	independently (ANDed) instead, so middle names, initials, and word order stop hiding
+	records. Only broadens multi-word `like` searches; single-word searches and every
+	other filter/operator are passed through byte-for-byte (zero behavior change there).
+	Deliberately permissive (a spare match is better than a hidden donor); this does NOT
+	fix misspellings (Hammel vs Hamel) -- that is a separate fuzzy-match enhancement.
+	"""
+	if not isinstance(filters, dict) or not filters:
+		return filters
+	try:
+		meta = frappe.get_meta(doctype)
+	except Exception:  # noqa: BLE001 -- never let this break the list
+		return filters
+	TEXT = {"Data", "Small Text", "Text", "Long Text", "Link"}
+	combined = []
+	hit = False
+	for key, val in list(filters.items()):
+		is_like = (isinstance(val, (list, tuple)) and len(val) == 2
+		           and isinstance(val[0], str) and val[0].lower() == "like"
+		           and isinstance(val[1], str))
+		if is_like:
+			df = None if key == "name" else meta.get_field(key)
+			field_ok = key == "name" or (df and df.fieldtype in TEXT)
+			toks = [t for t in val[1].strip().strip("%").strip().split() if t]
+			if field_ok and len(toks) >= 2:
+				hit = True
+				for t in toks:
+					combined.append([key, "like", "%" + t + "%"])
+				continue
+		# passthrough, unchanged
+		if isinstance(val, (list, tuple)) and len(val) == 2:
+			combined.append([key, val[0], val[1]])
+		else:
+			combined.append([key, "=", val])
+	return combined if hit else filters
+
+
 @frappe.whitelist()
 def get_data(
 	doctype: str,
@@ -354,6 +398,11 @@ def get_data(
 		# check if rows has group_by_field if not add it
 		if group_by_field and group_by_field not in rows:
 			rows.append(group_by_field)
+
+		# HT office 2026-08-04: make multi-word name searches ignore middle names/initials
+		# and word order (a whole-phrase LIKE hid "Barbara A. Hamel" from a "Barbara Hamel"
+		# search). Applied only to the list query below, right before it runs.
+		filters = _expand_multiword_name_search(doctype, filters)
 
 		data = (
 			frappe.get_list(
