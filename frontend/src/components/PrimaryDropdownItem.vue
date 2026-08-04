@@ -48,7 +48,9 @@
       </div>
     </div>
     <div v-if="option.selected">
-      <span class="lucide-check text-ink-gray-5 h-4 w-6" aria-hidden="true" />
+      <!-- office ask 2026-08-04: the primary row must be OBVIOUS — the old faint
+           gray check read as decoration, not as "this is the primary" -->
+      <Badge :label="__('Primary')" theme="green" variant="subtle" class="ml-2" />
     </div>
   </div>
 </template>
@@ -56,7 +58,7 @@
 <script setup>
 import SuccessIcon from '@/components/Icons/SuccessIcon.vue'
 import EditIcon from '@/components/Icons/EditIcon.vue'
-import { TextInput } from 'frappe-ui'
+import { Badge, TextInput } from 'frappe-ui'
 import { nextTick, ref, onMounted, reactive, watch } from 'vue'
 
 const props = defineProps({

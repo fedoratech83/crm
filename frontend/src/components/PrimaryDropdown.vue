@@ -6,7 +6,25 @@
         class="dropdown-button flex items-center justify-between bg-surface-base !px-2.5 py-1.5 text-base text-ink-gray-8 placeholder-ink-gray-4 transition-colors hover:bg-surface-base focus:bg-surface-base focus:shadow-sm focus:outline-none focus:ring-0"
         @click="togglePopover"
       >
-        <div v-if="value" class="truncate">{{ value }}</div>
+        <!-- office ask 2026-08-04: mark the shown value as the primary and reveal
+             that alternates exist, without opening the dropdown -->
+        <div v-if="value" class="flex min-w-0 items-center gap-1.5">
+          <span class="truncate">{{ value }}</span>
+          <Badge
+            v-if="options?.length > 1"
+            :label="__('Primary')"
+            theme="green"
+            variant="subtle"
+            class="shrink-0"
+          />
+          <span
+            v-if="options?.length > 1"
+            class="shrink-0 rounded bg-surface-gray-2 px-1 text-xs leading-4 text-ink-gray-6"
+            :title="__('{0} more on file', [options.length - 1])"
+          >
+            +{{ options.length - 1 }}
+          </span>
+        </div>
         <div v-else class="text-base leading-5 text-ink-gray-4 truncate">
           {{ placeholder }}
         </div>
@@ -50,7 +68,7 @@
 
 <script setup>
 import PrimaryDropdownItem from '@/components/PrimaryDropdownItem.vue'
-import { Popover } from 'frappe-ui'
+import { Badge, Popover } from 'frappe-ui'
 
 defineProps({
   value: { type: [String, Number], default: '' },

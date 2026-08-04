@@ -161,8 +161,19 @@
           :columns="columns"
           :options="{ selectable: false, showTooltip: false }"
         />
+        <RelationshipsListView
+          v-if="tab.label === 'Relationships' && relationshipRows.length"
+          :rows="relationshipRows"
+          :codes="donations.data?.constituency_codes || ''"
+        />
         <EmptyState
-          v-if="tab.label === 'Donations' ? !donationRows.length : !rows.length"
+          v-if="
+            tab.label === 'Donations'
+              ? !donationRows.length
+              : tab.label === 'Relationships'
+                ? !relationshipRows.length
+                : !rows.length
+          "
           :icon="tab.icon"
           :name="__(tab.label)"
         />
@@ -191,6 +202,7 @@ import Icon from '@/components/Icon.vue'
 import LayoutHeader from '@/components/LayoutHeader.vue'
 import DealsListView from '@/components/ListViews/DealsListView.vue'
 import DonationsListView from '@/components/ListViews/DonationsListView.vue'
+import RelationshipsListView from '@/components/ListViews/RelationshipsListView.vue'
 import ContactsListView from '@/components/ListViews/ContactsListView.vue'
 import WebsiteIcon from '@/components/Icons/WebsiteIcon.vue'
 import CameraIcon from '@/components/Icons/CameraIcon.vue'
@@ -393,6 +405,12 @@ const tabs = [
     icon: ContactsIcon,
     count: computed(() => contacts.data?.length),
   },
+  // One-view (office 2026-08-04): full relationships on the organization page too
+  {
+    label: 'Relationships',
+    icon: ContactsIcon,
+    count: computed(() => donations.data?.relationships?.length || 0),
+  },
 ]
 
 const deals = createListResource({
@@ -449,6 +467,8 @@ const donations = createResource({
     donationRows.value = donationRows.value.concat(data?.rows || [])
   },
 })
+
+const relationshipRows = computed(() => donations.data?.relationships || [])
 
 function loadMoreDonations() {
   donations.submit({

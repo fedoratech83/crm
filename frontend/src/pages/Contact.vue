@@ -167,6 +167,21 @@
           :icon="tab.icon"
           name="Deals"
         />
+        <RelationshipsListView
+          v-if="tab.label === 'Relationships' && relationshipRows.length"
+          :rows="relationshipRows"
+          :codes="donations.data?.constituency_codes || ''"
+        />
+        <EmptyState
+          v-if="tab.label === 'Relationships' && !relationshipRows.length"
+          :icon="tab.icon"
+          name="Relationships"
+        />
+        <ContactNotesView
+          v-if="tab.label === 'Notes'"
+          :contactId="contactId"
+          :notes="notes"
+        />
       </template>
     </Tabs>
   </div>
@@ -195,6 +210,10 @@ import CameraIcon from '@/components/Icons/CameraIcon.vue'
 import DealsIcon from '@/components/Icons/DealsIcon.vue'
 import DealsListView from '@/components/ListViews/DealsListView.vue'
 import DonationsListView from '@/components/ListViews/DonationsListView.vue'
+import RelationshipsListView from '@/components/ListViews/RelationshipsListView.vue'
+import ContactNotesView from '@/components/ContactNotesView.vue'
+import ContactsIcon from '@/components/Icons/ContactsIcon.vue'
+import NoteIcon from '@/components/Icons/NoteIcon.vue'
 import CustomActions from '@/components/CustomActions.vue'
 import { validateIsImageFile, setupCustomizations } from '@/utils'
 import { timestampCell } from '@/composables/useTimelinePreferences'
@@ -320,6 +339,17 @@ const tabs = [
     icon: DealsIcon,
     count: computed(() => deals.data?.length),
   },
+  // One-view (office 2026-08-04): full relationships + linked notes on the constituent
+  {
+    label: 'Relationships',
+    icon: ContactsIcon,
+    count: computed(() => donations.data?.relationships?.length || 0),
+  },
+  {
+    label: 'Notes',
+    icon: NoteIcon,
+    count: computed(() => notes.data?.length || 0),
+  },
 ]
 
 // Holy Trinity deploy patch: full ERP donation history instead of the Deals list
@@ -341,6 +371,22 @@ function loadMoreDonations() {
     limit: 50,
   })
 }
+
+const relationshipRows = computed(() => donations.data?.relationships || [])
+
+// linked notes for this constituent (ContactNotesView creates them with this
+// reference, which is what the ERP mirror keys on)
+const notes = createResource({
+  url: 'frappe.client.get_list',
+  params: {
+    doctype: 'FCRM Note',
+    filters: { reference_doctype: 'Contact', reference_docname: props.contactId },
+    fields: ['name', 'title', 'content', 'owner', 'modified'],
+    order_by: 'modified desc',
+    limit_page_length: 0,
+  },
+  auto: true,
+})
 
 const deals = createResource({
   url: 'crm.api.contact.get_linked_deals',

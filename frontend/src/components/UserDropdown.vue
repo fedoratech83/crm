@@ -48,14 +48,14 @@
 <script setup>
 import BrandLogo from '@/components/BrandLogo.vue'
 import FrappeCloudIcon from '@/components/Icons/FrappeCloudIcon.vue'
-import Apps from '@/components/Apps.vue'
+import AppsIcon from '@/components/Icons/AppsIcon.vue'
 import { sessionStore } from '@/stores/session'
 import { usersStore } from '@/stores/users'
 import { getSettings } from '@/stores/settings'
 import { showSettings, isMobileView } from '@/composables/settings'
 import { showAboutModal } from '@/composables/modals'
 import { confirmLoginToFrappeCloud } from '@/composables/frappecloud'
-import { Dropdown } from 'frappe-ui'
+import { Dropdown, createResource } from 'frappe-ui'
 import { computed, h, markRaw } from 'vue'
 
 defineProps({
@@ -67,6 +67,40 @@ const { logout } = sessionStore()
 const { getUser } = usersStore()
 
 const user = computed(() => getUser() || {})
+
+// Moved here from the retired Apps.vue (2026-08-04): the Apps entry is now the
+// Dropdown's NATIVE submenu instead of a hover Popover nested inside the menu.
+// Under frappe-ui >= 1.0.0-beta.19 (reka-ui) the menu's focus handling dismissed
+// that popover before the pointer could reach it — the office's "Apps menu goes
+// away before I can click it" — and the popover's leaveDelay only governed the
+// legacy close path, not reka's. The native submenu lives in the menu's own layer
+// stack and has reka's pointer-grace polygon for the diagonal travel.
+const apps = createResource({
+  url: 'frappe.apps.get_apps',
+  cache: 'apps',
+  auto: true,
+  transform: (data) => {
+    let _apps = [
+      {
+        name: 'frappe',
+        logo: '/assets/frappe/images/framework.png',
+        title: __('Desk'),
+        route: '/app',
+      },
+    ]
+    data.map((app) => {
+      if (app.name === 'crm') return
+      _apps.push({
+        name: app.name,
+        logo: app.logo,
+        title: __(app.title),
+        route: app.route,
+      })
+    })
+
+    return _apps
+  },
+})
 
 const dropdownItems = computed(() => {
   if (!settings.value?.dropdown_items) return []
@@ -122,8 +156,17 @@ function dropdownItemObj(item) {
 function getStandardItem(item) {
   switch (item.name1) {
     case 'app_selector':
+      // same-tab navigation, matching the retired Apps.vue's plain <a :href> links
       return {
-        component: markRaw(Apps),
+        label: __('Apps'),
+        icon: markRaw(AppsIcon),
+        submenu: (apps.data || []).map((app) => ({
+          label: app.title,
+          icon: markRaw({ render: () => h('img', { src: app.logo, class: 'size-4' }) }),
+          onClick: () => {
+            window.location.href = app.route
+          },
+        })),
       }
     case 'settings':
       return {

@@ -246,20 +246,24 @@
                       </div>
                     </template>
                     <div class="flex flex-col gap-1.5 text-base">
-                      <div
-                        v-if="contact.email"
-                        class="flex items-center gap-3 pb-1.5 pl-1 pt-4 text-ink-gray-8"
-                      >
-                        <Email2Icon class="h-4 w-4" />
-                        {{ contact.email }}
-                      </div>
-                      <div
-                        v-if="contact.mobile_no"
-                        class="flex items-center gap-3 p-1 py-1.5 text-ink-gray-8"
-                      >
-                        <PhoneIcon class="h-4 w-4" />
-                        {{ contact.mobile_no }}
-                      </div>
+                      <!-- these are the contact's PRIMARY channels (office ask
+                           2026-08-04: primary must be obvious everywhere) -->
+                      <Tooltip v-if="contact.email" :text="__('Primary email')">
+                        <div
+                          class="flex items-center gap-3 pb-1.5 pl-1 pt-4 text-ink-gray-8"
+                        >
+                          <Email2Icon class="h-4 w-4" />
+                          {{ contact.email }}
+                        </div>
+                      </Tooltip>
+                      <Tooltip v-if="contact.mobile_no" :text="__('Primary phone')">
+                        <div
+                          class="flex items-center gap-3 p-1 py-1.5 text-ink-gray-8"
+                        >
+                          <PhoneIcon class="h-4 w-4" />
+                          {{ contact.mobile_no }}
+                        </div>
+                      </Tooltip>
                       <div
                         v-if="!contact.email && !contact.mobile_no"
                         class="flex items-center justify-center py-4 text-sm text-ink-gray-4"
