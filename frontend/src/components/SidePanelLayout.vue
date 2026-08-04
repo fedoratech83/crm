@@ -110,7 +110,11 @@
                           ]"
                         >
                           <Tooltip :text="__(field.tooltip)">
-                            <div>{{ doc[field.fieldname] }}</div>
+                            <!-- HT fix 2026-08-04: read-only Date/Datetime fields
+                                 (Last/First Gift Date) printed the raw ISO value —
+                                 the last day-first/year-first date surface left after
+                                 the site-default repair. Render via the site format. -->
+                            <div>{{ readOnlyDisplayValue(field, doc[field.fieldname]) }}</div>
                           </Tooltip>
                         </div>
                         <PrimaryDropdown
@@ -438,11 +442,21 @@ import { parseLinkFilters } from '@/utils/fieldTransforms'
 import { usersStore } from '@/stores/users'
 import { isMobileView } from '@/composables/settings'
 import {
+  formatDate,
   getFormat,
   evaluateDependsOnValue,
   isNull,
   interpolateTemplate,
 } from '@/utils'
+
+// HT fix 2026-08-04: site-format dates in the read-only text branch (which handles
+// every read-only fieldtype not in its exclusion list, Date/Datetime included)
+function readOnlyDisplayValue(field, value) {
+  if (!value) return value
+  if (field.fieldtype === 'Date') return formatDate(value, '', true)
+  if (field.fieldtype === 'Datetime') return formatDate(value, '', true, true)
+  return value
+}
 import { flt } from '@/utils/numberFormat.js'
 import { Tooltip, DateTimePicker, DatePicker, TimePicker } from 'frappe-ui'
 import { useDocument } from '@/data/document'
