@@ -55,9 +55,22 @@
         />
         <div
           v-else-if="!note._editable"
-          class="flex-1 overflow-hidden whitespace-pre-line text-p-sm text-ink-gray-5"
+          class="flex-1 overflow-hidden text-p-sm text-ink-gray-5"
         >
-          {{ note.summary || note.note_text || '' }}
+          <!-- migrated RE notes commonly carry BOTH: summary is a short label/caption,
+               note_text is the real paragraph content. Showing only one hid whichever
+               wasn't picked -- e.g. a "Meeting with Henry and Leslie" summary hid the
+               actual multi-sentence meeting account underneath it (office ask 08-06). -->
+          <div
+            v-if="note.summary && note.note_text"
+            class="mb-1 truncate font-medium text-ink-gray-7"
+            :title="note.summary"
+          >
+            {{ note.summary }}
+          </div>
+          <div class="whitespace-pre-line">
+            {{ note.note_text || note.summary || '' }}
+          </div>
         </div>
         <div class="mt-1 flex items-center justify-between gap-2">
           <template v-if="note._editable">
