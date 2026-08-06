@@ -166,13 +166,22 @@
           :rows="relationshipRows"
           :codes="donations.data?.constituency_codes || ''"
         />
+        <ContactNotesView
+          v-if="tab.label === 'Notes'"
+          :refId="organizationId"
+          refDoctype="CRM Organization"
+          :crmNotes="notes"
+          :donorNotes="donorNotes"
+        />
         <EmptyState
           v-if="
             tab.label === 'Donations'
               ? !donationRows.length
               : tab.label === 'Relationships'
                 ? !relationshipRows.length
-                : !rows.length
+                : tab.label === 'Notes'
+                  ? false
+                  : !rows.length
           "
           :icon="tab.icon"
           :name="__(tab.label)"
@@ -204,10 +213,12 @@ import DealsListView from '@/components/ListViews/DealsListView.vue'
 import DonationsListView from '@/components/ListViews/DonationsListView.vue'
 import RelationshipsListView from '@/components/ListViews/RelationshipsListView.vue'
 import ContactsListView from '@/components/ListViews/ContactsListView.vue'
+import ContactNotesView from '@/components/ContactNotesView.vue'
 import WebsiteIcon from '@/components/Icons/WebsiteIcon.vue'
 import CameraIcon from '@/components/Icons/CameraIcon.vue'
 import DealsIcon from '@/components/Icons/DealsIcon.vue'
 import ContactsIcon from '@/components/Icons/ContactsIcon.vue'
+import NoteIcon from '@/components/Icons/NoteIcon.vue'
 import DeleteLinkedDocModal from '@/components/DeleteLinkedDocModal.vue'
 import CustomActions from '@/components/CustomActions.vue'
 import { useDocument } from '@/data/document'
@@ -411,6 +422,13 @@ const tabs = [
     icon: ContactsIcon,
     count: computed(() => donations.data?.relationships?.length || 0),
   },
+  // Office ask 2026-08-05: organizations never had a Notes surface at all — 256 of
+  // them carry migrated Raiser's Edge notes that were invisible everywhere in the CRM.
+  {
+    label: 'Notes',
+    icon: NoteIcon,
+    count: computed(() => (notes.data?.length || 0) + (donorNotes.data?.length || 0)),
+  },
 ]
 
 const deals = createListResource({
@@ -469,6 +487,27 @@ const donations = createResource({
 })
 
 const relationshipRows = computed(() => donations.data?.relationships || [])
+
+// linked CRM notes + the organization's ERP-side notes (migrated from Raiser's Edge,
+// or entered directly in ERPNext) — merged by ContactNotesView, same pattern as
+// Contact.vue. Office ask 2026-08-05: 256 organizations carry migrated notes with no
+// CRM surface to see them at all until this tab.
+const notes = createResource({
+  url: 'frappe.client.get_list',
+  params: {
+    doctype: 'FCRM Note',
+    filters: { reference_doctype: 'CRM Organization', reference_docname: props.organizationId },
+    fields: ['name', 'title', 'content', 'owner', 'modified'],
+    order_by: 'modified desc',
+    limit_page_length: 0,
+  },
+  auto: true,
+})
+const donorNotes = createResource({
+  url: 'fundraising.crm.giving.donor_notes',
+  params: { ref_doctype: 'CRM Organization', ref_name: props.organizationId },
+  auto: true,
+})
 
 function loadMoreDonations() {
   donations.submit({

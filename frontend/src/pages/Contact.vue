@@ -179,8 +179,10 @@
         />
         <ContactNotesView
           v-if="tab.label === 'Notes'"
-          :contactId="contactId"
-          :notes="notes"
+          :refId="contactId"
+          refDoctype="Contact"
+          :crmNotes="notes"
+          :donorNotes="donorNotes"
         />
       </template>
     </Tabs>
@@ -348,7 +350,7 @@ const tabs = [
   {
     label: 'Notes',
     icon: NoteIcon,
-    count: computed(() => notes.data?.length || 0),
+    count: computed(() => (notes.data?.length || 0) + (donorNotes.data?.length || 0)),
   },
 ]
 
@@ -385,6 +387,15 @@ const notes = createResource({
     order_by: 'modified desc',
     limit_page_length: 0,
   },
+  auto: true,
+})
+
+// the donor's ERP-side notes (migrated from Raiser's Edge, or entered directly in
+// ERPNext) — read-only here, merged with the CRM notes above by ContactNotesView.
+// Office ask 2026-08-05: these were never lost, the tab just never queried them.
+const donorNotes = createResource({
+  url: 'fundraising.crm.giving.donor_notes',
+  params: { ref_doctype: 'Contact', ref_name: props.contactId },
   auto: true,
 })
 
